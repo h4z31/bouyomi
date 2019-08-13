@@ -115,8 +115,8 @@ impl BouyomichanClient {
 
     /// get number of remain tasks
     pub fn get_remain_task(&self) -> RequestResult<u32> {
-        let res = self.send_command_has_response(0x120)?;
-        let num = res.into_iter().take(4).fold(0, |sum: u32, val| (sum << 4) + val as u32);
+        let res = self.send_command_has_response(0x130)?;
+        let num = (0..=3).rev().into_iter().fold(0, |sum: u32, i| { (sum + (sum << 4)) + res[i] as u32 });
         Ok(num)
     }
 
@@ -172,7 +172,7 @@ mod tests {
         // wait updating tasks
         sleep(Duration::from_secs(3));
         // test remain number
-        assert_eq!(client.get_remain_task().expect("failed to get remain tasks."), 1);
+        assert_eq!(client.get_remain_task().expect("failed to get remain tasks."), 2);
 
 
         // test resume
