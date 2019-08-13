@@ -1,6 +1,5 @@
 use std::net::TcpStream;
-use std::io::{BufReader, BufRead};
-use std::io::{BufWriter, Write};
+use std::io::Write;
 
 use byteorder::{WriteBytesExt, LittleEndian};
 
