@@ -20,7 +20,7 @@ client.talk_with_default("こんにちは").expected("something happened..");
 ```
 
 |command|status|
-|:--|-:-|
+|:--|:--|
 |talk|:white_check_mark:|
 |talk_with_default|:white_check_mark:|
 |pause|:white_check_mark:|
