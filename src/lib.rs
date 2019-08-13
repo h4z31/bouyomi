@@ -49,7 +49,7 @@ impl BouyomichanClient {
     pub fn new(host: impl AsRef<str>, port: impl AsRef<str>) -> Self {
         BouyomichanClient {
             host: host.as_ref().to_owned(),
-            port: host.as_ref().to_owned(),
+            port: port.as_ref().to_owned(),
         }
     }
 
