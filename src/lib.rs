@@ -16,11 +16,11 @@ type RequestResult<T> = Result<T, Box<dyn std::error::Error>>;
 /// Talk Config for BouyomiChan
 /// Sorry, I don't know the details.
 pub struct TalkConfig {
-    code: u8,
-    voice: i16,
-    volume: i16,
-    speed: i16,
-    tone: i16,
+    pub code: u8,
+    pub voice: i16,
+    pub volume: i16,
+    pub speed: i16,
+    pub tone: i16,
 }
 
 impl Default for BouyomichanClient {
@@ -149,7 +149,7 @@ mod tests {
 
         // Expected behavior is..
         // こんばんは -> 月がきれいですね (End)
-        
+
         let client = BouyomichanClient::default();
 
         // test talk
