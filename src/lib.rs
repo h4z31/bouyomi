@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::io::Write;
+use std::io::{Write, Read};
 
 use byteorder::{WriteBytesExt, LittleEndian};
 
@@ -10,6 +10,8 @@ pub struct BouyomichanClient {
     host: String,
     port: String,
 }
+
+type RequestResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 /// Talk Config for BouyomiChan
 /// Sorry, I don't know the details.
@@ -53,13 +55,13 @@ impl BouyomichanClient {
     }
 
     /// talk with default config
-    pub fn talk_with_default(&self, message: impl AsRef<str>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn talk_with_default(&self, message: impl AsRef<str>) -> RequestResult<()> {
         let config = TalkConfig::default();
         self.talk(message, &config)
     }
 
     /// talk with manual config
-    pub fn talk(&self, message: impl AsRef<str>, config: &TalkConfig) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn talk(&self, message: impl AsRef<str>, config: &TalkConfig) -> RequestResult<()> {
         let mut stream = TcpStream::connect(format!("{}:{}", self.host, self.port))?;
         let message_bytes = message.as_ref().as_bytes();
         let message_length: u32 = message_bytes.len() as u32;
@@ -79,15 +81,114 @@ impl BouyomichanClient {
         Ok(())
     }
 
+    /// pause BouyomiChan
+    pub fn pause(&self) -> RequestResult<()> {
+        self.send_simple_command(0x10)
+    }
+
+    /// resume BouyomiChan
+    pub fn resume(&self) -> RequestResult<()> {
+        self.send_simple_command(0x20)
+    }
+
+    /// skip a task
+    pub fn skip(&self) -> RequestResult<()> {
+        self.send_simple_command(0x30)
+    }
+
+    /// clear tasks
+    pub fn clear(&self) -> RequestResult<()> {
+        self.send_simple_command(0x40)
+    }
+
+    /// get pause status
+    pub fn get_pause(&self) -> RequestResult<bool> {
+        let res = self.send_command_has_response(0x110)?;
+        Ok(*res.get(0).ok_or("could not parse request result..")? == 1)
+    }
+
+    /// get playing status
+    pub fn get_now_playing(&self) -> RequestResult<bool> {
+        let res = self.send_command_has_response(0x120)?;
+        Ok(*res.get(0).ok_or("could not parse request result..")? == 1)
+    }
+
+    /// get number of remain tasks
+    pub fn get_remain_task(&self) -> RequestResult<u32> {
+        let res = self.send_command_has_response(0x120)?;
+        let num = res.into_iter().take(4).fold(0, |sum: u32, val| (sum << 4) + val as u32);
+        Ok(num)
+    }
+
+    fn send_simple_command(&self, command_id: i16) -> RequestResult<()> {
+        let mut stream = TcpStream::connect(format!("{}:{}", self.host, self.port))?;
+        stream.write_i16::<LittleEndian>(command_id)?;
+        stream.flush()?;
+        Ok(())
+    }
+
+    fn send_command_has_response(&self, command_id: i16) -> RequestResult<Vec<u8>> {
+        let mut stream = TcpStream::connect(format!("{}:{}", self.host, self.port))?;
+        stream.write_i16::<LittleEndian>(command_id)?;
+        stream.flush()?;
+        let mut res = Vec::new();
+        stream.read_to_end(&mut res)?;
+        Ok(res)
+    }
+
 }
 
 #[cfg(test)]
 mod tests {
     use crate::BouyomichanClient;
+    use std::thread::sleep;
+    use std::time::Duration;
 
     #[test]
     fn it_works() {
+
+        // Expected behavior is..
+        // こんばんは -> 月がきれいですね (End)
+        
         let client = BouyomichanClient::default();
-        client.talk_with_default("こんにちは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+
+        // test talk
+        client.talk_with_default("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+
+        // test pause
+        client.pause().expect("failed to pause.");
+
+        // test pause status
+        assert!(client.get_pause().expect("failed to get pause status."));
+
+        // push task
+        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+
+        // test skip
+        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.skip().expect("failed to skip");
+
+
+        // wait updating tasks
+        sleep(Duration::from_secs(3));
+        // test remain number
+        assert_eq!(client.get_remain_task().expect("failed to get remain tasks."), 1);
+
+
+        // test resume
+        client.resume().expect("failed to resume.");
+
+        // test playing status
+        assert_eq!(true, client.get_now_playing().expect("failed to get playing status"));
+
+        // pause
+        client.pause().expect("failed to pause.");
+
+        // this will not play
+        client.talk_with_default("さようなら。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        // clear tasks
+        client.clear().expect("failed to clear.");
+        // resume
+        client.resume().expect("failed to resume.");
     }
 }
