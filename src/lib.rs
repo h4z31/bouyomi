@@ -55,13 +55,13 @@ impl Client {
     }
 
     /// talk with default config
-    pub fn talk_with_default(&self, message: impl AsRef<str>) -> RequestResult<()> {
+    pub fn talk(&self, message: impl AsRef<str>) -> RequestResult<()> {
         let config = TalkConfig::default();
-        self.talk(message, &config)
+        self.talk_manual(message, &config)
     }
 
     /// talk with manual config
-    pub fn talk(&self, message: impl AsRef<str>, config: &TalkConfig) -> RequestResult<()> {
+    pub fn talk_manual(&self, message: impl AsRef<str>, config: &TalkConfig) -> RequestResult<()> {
         let mut stream = TcpStream::connect(format!("{}:{}", self.host, self.port))?;
         let message_bytes = message.as_ref().as_bytes();
         let message_length: u32 = message_bytes.len() as u32;
@@ -153,7 +153,7 @@ mod tests {
         let client = Client::default();
 
         // test talk
-        client.talk_with_default("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
 
         // test pause
         client.pause().expect("failed to pause.");
@@ -162,10 +162,10 @@ mod tests {
         assert!(client.get_pause().expect("failed to get pause status."));
 
         // push task
-        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
 
         // test skip
-        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
         client.skip().expect("failed to skip");
 
 
@@ -185,7 +185,7 @@ mod tests {
         client.pause().expect("failed to pause.");
 
         // this will not play
-        client.talk_with_default("さようなら。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("さようなら。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
         // clear tasks
         client.clear().expect("failed to clear.");
         // resume
