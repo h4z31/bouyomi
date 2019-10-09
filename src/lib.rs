@@ -116,7 +116,7 @@ impl Client {
     /// get number of remain tasks
     pub fn get_remain_task(&self) -> RequestResult<u32> {
         let res = self.send_command_has_response(0x130)?;
-        let num = (0..=3).rev().into_iter().fold(0, |sum: u32, i| { (sum + (sum << 4)) + res[i] as u32 });
+        let num = (0..=3).rev().fold(0, |sum: u32, i| { (sum + (sum << 4)) + u32::from(res[i]) });
         Ok(num)
     }
 
