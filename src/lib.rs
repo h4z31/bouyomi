@@ -6,7 +6,7 @@ use byteorder::{WriteBytesExt, LittleEndian};
 /// Client for BouyomiChan
 /// using App Collaboration function (TCP)
 /// default: 127.0.0.1:50001
-pub struct BouyomichanClient {
+pub struct Client {
     host: String,
     port: String,
 }
@@ -23,9 +23,9 @@ pub struct TalkConfig {
     pub tone: i16,
 }
 
-impl Default for BouyomichanClient {
+impl Default for Client {
     fn default() -> Self {
-        BouyomichanClient {
+        Client {
             host: String::from("127.0.0.1"),
             port: String::from("50001"),
         }
@@ -44,24 +44,24 @@ impl Default for TalkConfig {
     }
 }
 
-impl BouyomichanClient {
+impl Client {
 
     /// new Client with host and port
     pub fn new(host: impl AsRef<str>, port: impl AsRef<str>) -> Self {
-        BouyomichanClient {
+        Client {
             host: host.as_ref().to_owned(),
             port: port.as_ref().to_owned(),
         }
     }
 
     /// talk with default config
-    pub fn talk_with_default(&self, message: impl AsRef<str>) -> RequestResult<()> {
+    pub fn talk(&self, message: impl AsRef<str>) -> RequestResult<()> {
         let config = TalkConfig::default();
-        self.talk(message, &config)
+        self.talk_manual(message, &config)
     }
 
     /// talk with manual config
-    pub fn talk(&self, message: impl AsRef<str>, config: &TalkConfig) -> RequestResult<()> {
+    pub fn talk_manual(&self, message: impl AsRef<str>, config: &TalkConfig) -> RequestResult<()> {
         let mut stream = TcpStream::connect(format!("{}:{}", self.host, self.port))?;
         let message_bytes = message.as_ref().as_bytes();
         let message_length: u32 = message_bytes.len() as u32;
@@ -116,7 +116,7 @@ impl BouyomichanClient {
     /// get number of remain tasks
     pub fn get_remain_task(&self) -> RequestResult<u32> {
         let res = self.send_command_has_response(0x130)?;
-        let num = (0..=3).rev().into_iter().fold(0, |sum: u32, i| { (sum + (sum << 4)) + res[i] as u32 });
+        let num = (0..=3).rev().fold(0, |sum: u32, i| { (sum + (sum << 4)) + u32::from(res[i]) });
         Ok(num)
     }
 
@@ -140,7 +140,7 @@ impl BouyomichanClient {
 
 #[cfg(test)]
 mod tests {
-    use crate::BouyomichanClient;
+    use crate::Client;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -150,10 +150,10 @@ mod tests {
         // Expected behavior is..
         // こんばんは -> 月がきれいですね (End)
 
-        let client = BouyomichanClient::default();
+        let client = Client::default();
 
         // test talk
-        client.talk_with_default("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
 
         // test pause
         client.pause().expect("failed to pause.");
@@ -162,10 +162,10 @@ mod tests {
         assert!(client.get_pause().expect("failed to get pause status."));
 
         // push task
-        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
 
         // test skip
-        client.talk_with_default("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("月が綺麗ですね。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
         client.skip().expect("failed to skip");
 
 
@@ -185,7 +185,7 @@ mod tests {
         client.pause().expect("failed to pause.");
 
         // this will not play
-        client.talk_with_default("さようなら。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
+        client.talk("さようなら。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
         // clear tasks
         client.clear().expect("failed to clear.");
         // resume
