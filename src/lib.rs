@@ -6,7 +6,7 @@ use byteorder::{WriteBytesExt, LittleEndian};
 /// Client for BouyomiChan
 /// using App Collaboration function (TCP)
 /// default: 127.0.0.1:50001
-pub struct BouyomichanClient {
+pub struct Client {
     host: String,
     port: String,
 }
@@ -23,9 +23,9 @@ pub struct TalkConfig {
     pub tone: i16,
 }
 
-impl Default for BouyomichanClient {
+impl Default for Client {
     fn default() -> Self {
-        BouyomichanClient {
+        Client {
             host: String::from("127.0.0.1"),
             port: String::from("50001"),
         }
@@ -44,11 +44,11 @@ impl Default for TalkConfig {
     }
 }
 
-impl BouyomichanClient {
+impl Client {
 
     /// new Client with host and port
     pub fn new(host: impl AsRef<str>, port: impl AsRef<str>) -> Self {
-        BouyomichanClient {
+        Client {
             host: host.as_ref().to_owned(),
             port: port.as_ref().to_owned(),
         }
@@ -140,7 +140,7 @@ impl BouyomichanClient {
 
 #[cfg(test)]
 mod tests {
-    use crate::BouyomichanClient;
+    use crate::Client;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -150,7 +150,7 @@ mod tests {
         // Expected behavior is..
         // こんばんは -> 月がきれいですね (End)
 
-        let client = BouyomichanClient::default();
+        let client = Client::default();
 
         // test talk
         client.talk_with_default("こんばんは。").expect("failed to send message to BouyomiChan (this test requires local running BouyomiChan and enable App Collaboration)");
